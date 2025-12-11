@@ -3162,9 +3162,24 @@ class AlpacaMCPServer:
         else:
             mcp.run(transport="stdio")
 
+# Railway + ChatGPT discovery fix
+from fastapi import FastAPI
+import uvicorn
+
+app = FastAPI()
+
+@app.get("/mcp")
+async def mcp_discovery():
+    return mcp.get_manifest()
+
+@app.get("/.well-known/mcp")
+async def well_known_mcp():
+    return mcp.get_manifest()
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "tools": len(mcp.tools)}
+
 if __name__ == "__main__":
-    args = parse_arguments()
-    try:
-        AlpacaMCPServer().run(args.transport, args.host, args.port)
-    except Exception as e:
-        print(f"Error starting server: {e}", file=sys.stderr); sys.exit(1)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("alpaca_mcp_server:app", host="0.0.0.0", port=port)
