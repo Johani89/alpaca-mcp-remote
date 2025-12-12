@@ -3172,9 +3172,7 @@ from fastapi.responses import JSONResponse
 @app.get("/health")
 @app.get("/health/")
 async def health():
-    # Keep it stupid simple: Railway just wants a 200
-    return JSONResponse(content={"status": "ok"})
-
+    return {"status": "ok"}
 
 @app.get("/mcp")
 async def mcp_discovery():
@@ -3183,10 +3181,6 @@ async def mcp_discovery():
 @app.get("/.well-known/mcp")
 async def well_known_mcp():
     return mcp.get_manifest()
-
-@app.get("/health")
-async def health():
-    return {"status": "ok", "tools": len(mcp.tools)}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
