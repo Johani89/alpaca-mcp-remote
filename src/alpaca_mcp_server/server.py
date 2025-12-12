@@ -3167,6 +3167,14 @@ from fastapi import FastAPI
 import uvicorn
 
 app = FastAPI()
+from fastapi.responses import JSONResponse
+
+@app.get("/health")
+@app.get("/health/")
+async def health():
+    # Keep it stupid simple: Railway just wants a 200
+    return JSONResponse(content={"status": "ok"})
+
 
 @app.get("/mcp")
 async def mcp_discovery():
