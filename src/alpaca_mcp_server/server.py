@@ -3182,6 +3182,4 @@ async def mcp_discovery():
 async def well_known_mcp():
     return mcp.get_manifest()
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("alpaca_mcp_server:app", host="0.0.0.0", port=port)
+
