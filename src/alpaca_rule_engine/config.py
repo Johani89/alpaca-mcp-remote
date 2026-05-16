@@ -45,8 +45,8 @@ DEFAULT_CONFIG = {
     },
 
     # Risk management parameters.  These settings enforce prudent
-    # position sizing and stop‑loss / take profit exits.  They are
-    # specified as fractions or absolute dollar values.  Symbol‑
+    # position sizing and stop‐loss / take profit exits.  They are
+    # specified as fractions or absolute dollar values.  Symbol‐
     # specific overrides can be added in the `overrides` section.
     "risk": {
         "max_position_pct": 0.05,       # 5 % of account equity per trade
