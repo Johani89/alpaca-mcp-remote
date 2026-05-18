@@ -31,6 +31,8 @@ import pandas as pd
 from .config import DEFAULT_CONFIG
 from . import indicators
 
+from alpaca.data.enums import DataFeed
+
 try:
     from alpaca.data import StockHistoricalDataClient
     from alpaca.data.timeframe import TimeFrame
@@ -94,11 +96,14 @@ class RuleEngine:
             # ``symbols=[symbol]`` triggers an unexpected keyword error.
             # Build the request and fetch the bars.
             from alpaca.data.requests import StockBarsRequest
+            
 
             request = StockBarsRequest(
                 symbol_or_symbols=[symbol],
                 timeframe=TimeFrame.Minute,
                 start=start,
+                feed=DataFeed.IEX,
+
                 end=end,
             )
             bars = self.data_client.get_stock_bars(request).df
