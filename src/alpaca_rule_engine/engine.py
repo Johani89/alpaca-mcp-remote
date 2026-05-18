@@ -89,12 +89,19 @@ class RuleEngine:
         end = datetime.utcnow()
         start = end - timedelta(minutes=lookback)
         try:
-            bars = self.data_client.get_stock_bars(
-                symbols=[symbol],
+            # The Alpaca data client now requires a StockBarsRequest when
+            # specifying symbols.  Using the previous signature with
+            # ``symbols=[symbol]`` triggers an unexpected keyword error.
+            # Build the request and fetch the bars.
+            from alpaca.data.requests import StockBarsRequest
+
+            request = StockBarsRequest(
+                symbol_or_symbols=[symbol],
                 timeframe=TimeFrame.Minute,
                 start=start,
                 end=end,
-            ).df
+            )
+            bars = self.data_client.get_stock_bars(request).df
             # When requesting multiple symbols the API returns a multi-index
             # with symbol as level 0.  If present we drop it.
             if isinstance(bars.index, pd.MultiIndex):
