@@ -64,6 +64,11 @@ class RuleEngine:
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         # Setup Alpaca client using env vars if present
+                # Cooldown minutes and state tracking
+        self.cooldown_minutes: int = self.config.get("cooldown_minutes", 30)
+        self.last_trade_times: Dict[str, datetime] = {}
+        self.active_positions: Dict[str, bool] = {}
+
         self.data_client = self._init_data_client()
 
     def _init_data_client(self) -> StockHistoricalDataClient:
@@ -240,6 +245,15 @@ class RuleEngine:
     def run_once(self) -> None:
         """Execute a single evaluation cycle for all tickers."""
         for symbol in self.tickers:
+                    now = datetime.utcnow()
+        # Skip symbol if cooldown period has not elapsed
+        last_time = self.last_trade_times.get(symbol)
+        if last_time and (now - last_time).total_seconds() < self.cooldown_minutes * 60:
+            continue
+        # Skip if we already have an open position for this symbol
+        if self.active_positions.get(symbol):
+            continue
+
             df = self._get_bars(symbol)
             if df.empty or len(df) < 5:
                 continue
@@ -251,6 +265,12 @@ class RuleEngine:
                     print(f"[DRY RUN] would submit order: {order}")
                 else:
                     self.submit_order(order)
+                                # Record trade time and mark position as active
+                self.last_trade_times[symbol] = now
+            self.active_positions[symbol] = True
+
+            self.active_positions[symbol] = True
+
 
     def _loop(self) -> None:
         """Internal thread loop executing run_once at the configured interval."""
