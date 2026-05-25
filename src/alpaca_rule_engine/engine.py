@@ -243,34 +243,46 @@ class RuleEngine:
     # Public API
     # ------------------------------------------------------------------
     def run_once(self) -> None:
-        """Execute a single evaluation cycle for all tickers."""
-        for symbol in self.tickers:
-                    now = datetime.utcnow()
-        # Skip symbol if cooldown period has not elapsed
+           """Execute a single evaluation cycle for all tickers."""
+        
+            for symbol in self.tickers:
+        now = datetime.utcnow()
+
+        # Cooldown protection
         last_time = self.last_trade_times.get(symbol)
         if last_time and (now - last_time).total_seconds() < self.cooldown_minutes * 60:
             continue
-        # Skip if we already have an open position for this symbol
+
+        # Prevent duplicate entries
         if self.active_positions.get(symbol):
             continue
 
-            df = self._get_bars(symbol)
-            if df.empty or len(df) < 5:
-                continue
-            price = df["close"].iloc[-1]
-            score = self._latest_score(df)
-            order = self._decision_and_order(symbol, price, score)
-            if order and self._risk_allowed(symbol):
-                if self.dry_run:
-                    print(f"[DRY RUN] would submit order: {order}")
-                else:
-                    self.submit_order(order)
-                                # Record trade time and mark position as active
-                self.last_trade_times[symbol] = now
+        df = self._get_bars(symbol)
+
+        if df.empty or len(df) < 5:
+            continue
+
+        price = df["close"].iloc[-1]
+        score = self._latest_score(df)
+
+        order = self._decision_and_order(
+            symbol,
+            price,
+            score,
+        )
+
+        if order and self._risk_allowed(symbol):
+
+            if self.dry_run:
+                print(f"[DRY RUN] would submit order: {order}")
+            else:
+                self.submit_order(order)
+
+            # Track state
+            self.last_trade_times[symbol] = now
             self.active_positions[symbol] = True
 
-            self.active_positions[symbol] = True
-
+    
 
     def _loop(self) -> None:
         """Internal thread loop executing run_once at the configured interval."""
