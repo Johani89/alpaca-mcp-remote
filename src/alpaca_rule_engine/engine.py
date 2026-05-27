@@ -243,48 +243,36 @@ class RuleEngine:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def run_once(self) -> None:
-           """Execute a single evaluation cycle for all tickers."""
-        
-            for symbol in self.tickers:
-        now = datetime.utcnow()
+       def run_once(self) -> None:
+        """Execute a single evaluation cycle for all tickers."""
+        for symbol in self.tickers:
+            now = datetime.utcnow()
 
-        # Cooldown protection
-        last_time = self.last_trade_times.get(symbol)
-        if last_time and (now - last_time).total_seconds() < self.cooldown_minutes * 60:
-            continue
+            # Cooldown protection
+            last_time = self.last_trade_times.get(symbol)
+            if last_time and (now - last_time).total_seconds() < self.cooldown_minutes * 60:
+                continue
 
-        # Prevent duplicate entries
-        if self.active_positions.get(symbol):
-            continue
+            # Prevent duplicate entries
+            if self.active_positions.get(symbol):
+                continue
 
-        df = self._get_bars(symbol)
+            df = self._get_bars(symbol)
+            if df.empty or len(df) < 5:
+                continue
 
-        if df.empty or len(df) < 5:
-            continue
+            price = df["close"].iloc[-1]
+            score = self._latest_score(df)
+            order = self._decision_and_order(symbol, price, score)
 
-        price = df["close"].iloc[-1]
-        score = self._latest_score(df)
+            if order and self._risk_allowed(symbol):
+                if self.dry_run:
+                    print(f"[DRY RUN] would submit order: {order}")
+                else:
+                    self.submit_order(order)
 
-        order = self._decision_and_order(
-            symbol,
-            price,
-            score,
-        )
-
-        if order and self._risk_allowed(symbol):
-
-            if self.dry_run:
-                print(f"[DRY RUN] would submit order: {order}")
-            else:
-                self.submit_order(order)
-
-            # Track state
-            self.last_trade_times[symbol] = now
-            self.active_positions[symbol] = True
-
-    
-
+                self.last_trade_times[symbol] = now
+                self.active_positions[symbol] = True
     def _loop(self) -> None:
         """Internal thread loop executing run_once at the configured interval."""
         while not self._stop_event.is_set():
