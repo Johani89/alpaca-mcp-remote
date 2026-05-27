@@ -244,8 +244,8 @@ class RuleEngine:
     # Public API
     # ------------------------------------------------------------------
        def run_once(self) -> None:
-        """Execute a single evaluation cycle for all tickers."""
-        for symbol in self.tickers:
+                """Execute a single evaluation cycle for all tickers."""
+                for symbol in self.tickers:
             now = datetime.utcnow()
 
             # Cooldown protection
@@ -271,6 +271,7 @@ class RuleEngine:
                 else:
                     self.submit_order(order)
 
+                
                 self.last_trade_times[symbol] = now
                 self.active_positions[symbol] = True
     def _loop(self) -> None:
