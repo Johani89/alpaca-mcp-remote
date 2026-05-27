@@ -243,7 +243,7 @@ class RuleEngine:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-       def run_once(self) -> None:
+    def run_once(self) -> None:
         """Execute a single evaluation cycle for all tickers."""
         for symbol in self.tickers:
             now = datetime.utcnow()
