@@ -1,5 +1,4 @@
 """
-
 Core rule engine for algorithmic trading via Alpaca.
 
 This engine is responsible for pulling market data, calculating
@@ -65,7 +64,7 @@ class RuleEngine:
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         # Setup Alpaca client using env vars if present
-                # Cooldown minutes and state tracking
+        # Cooldown minutes and state tracking
         self.cooldown_minutes: int = self.config.get("cooldown_minutes", 30)
         self.last_trade_times: Dict[str, datetime] = {}
         self.active_positions: Dict[str, bool] = {}
@@ -102,14 +101,12 @@ class RuleEngine:
             # ``symbols=[symbol]`` triggers an unexpected keyword error.
             # Build the request and fetch the bars.
             from alpaca.data.requests import StockBarsRequest
-            
 
             request = StockBarsRequest(
                 symbol_or_symbols=[symbol],
                 timeframe=TimeFrame.Minute,
                 start=start,
                 feed=DataFeed.IEX,
-
                 end=end,
             )
             bars = self.data_client.get_stock_bars(request).df
@@ -243,9 +240,9 @@ class RuleEngine:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-       def run_once(self) -> None:
-                """Execute a single evaluation cycle for all tickers."""
-                for symbol in self.tickers:
+    def run_once(self) -> None:
+        """Execute a single evaluation cycle for all tickers."""
+        for symbol in self.tickers:
             now = datetime.utcnow()
 
             # Cooldown protection
@@ -271,9 +268,9 @@ class RuleEngine:
                 else:
                     self.submit_order(order)
 
-                
                 self.last_trade_times[symbol] = now
                 self.active_positions[symbol] = True
+
     def _loop(self) -> None:
         """Internal thread loop executing run_once at the configured interval."""
         while not self._stop_event.is_set():
