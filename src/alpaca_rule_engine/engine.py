@@ -1,4 +1,5 @@
 """
+
 Core rule engine for algorithmic trading via Alpaca.
 
 This engine is responsible for pulling market data, calculating
