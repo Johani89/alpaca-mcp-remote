@@ -260,10 +260,10 @@ class RuleEngine:
 
             price = df["close"].iloc[-1]
             score = self._latest_score(df)
-                    signal_score = self._setup_quality_score(symbol, df, score)
-        if signal_score < 70:
-            print(f"[FILTERED] {symbol} setup score {signal_score:.1f} below threshold")
-            continue
+            signal_score = self._setup_quality_score(symbol, df, score)
+            if signal_score < 70:
+                print(f"[FILTERED] {symbol} setup score {signal_score:.1f} below threshold")
+                continue
 
             order = self._decision_and_order(symbol, price, score)
 
