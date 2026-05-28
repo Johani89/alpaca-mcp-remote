@@ -260,10 +260,11 @@ class RuleEngine:
 
             price = df["close"].iloc[-1]
             score = self._latest_score(df)
-                    signal_score = self._setup_quality_score(symbol, df, score)
-        if signal_score < 70:
-            print(f"[FILTERED] {symbol} setup score {signal_score:.1f} below threshold")
-            continue
+            
+            signal_score = self._setup_quality_score(symbol, df, score)
+            if signal_score < 70:
+                print(f"[FILTERED] {symbol} setup score {signal_score:.1f} below threshold")
+                continue
 
             order = self._decision_and_order(symbol, price, score)
 
@@ -313,9 +314,9 @@ class RuleEngine:
             "tickers": list(self.tickers),
             "interval_seconds": self.interval,
             "dry_run": self.dry_run,
-   
-        
-            def _setup_quality_score(self, symbol: str, df: pd.DataFrame, base_score: float) -> float:
+        }
+
+    def _setup_quality_score(self, symbol: str, df: pd.DataFrame, base_score: float) -> float:
         """Compute a setup quality score for a given symbol and its data.
 
         This method evaluates the quality of a trading setup based on several
@@ -395,4 +396,3 @@ class RuleEngine:
         # Normalize to 0-100
         final_score = max(0.0, min(final, 100.0))
         return final_score
-}
