@@ -260,6 +260,11 @@ class RuleEngine:
 
             price = df["close"].iloc[-1]
             score = self._latest_score(df)
+                    signal_score = self._setup_quality_score(symbol, df, score)
+        if signal_score < 70:
+            print(f"[FILTERED] {symbol} setup score {signal_score:.1f} below threshold")
+            continue
+
             order = self._decision_and_order(symbol, price, score)
 
             if order and self._risk_allowed(symbol):
@@ -308,4 +313,86 @@ class RuleEngine:
             "tickers": list(self.tickers),
             "interval_seconds": self.interval,
             "dry_run": self.dry_run,
-        }
+   
+        
+            def _setup_quality_score(self, symbol: str, df: pd.DataFrame, base_score: float) -> float:
+        """Compute a setup quality score for a given symbol and its data.
+
+        This method evaluates the quality of a trading setup based on several
+        factors, including VWAP position, relative volume, trend strength,
+        RSI extension, gap extension, and optional catalyst/market regime
+        adjustments. Scores are normalized to a 0-100 scale where higher
+        values indicate higher-quality setups.
+        
+        Args:
+            symbol: The ticker symbol being evaluated.
+            df: A pandas DataFrame of recent price and volume data.
+            base_score: The existing indicator-based score for this symbol.
+        
+        Returns:
+            A float between 0 and 100 representing the quality of the setup.
+        """
+        # Ensure we have enough data
+        if df.empty or len(df) < 2:
+            return 0.0
+
+        price = df["close"].iloc[-1]
+
+        # VWAP position: closeness of price to VWAP (closer is better)
+        vwap_series = indicators.vwap(df)
+        vwap = vwap_series.iloc[-1] if not vwap_series.empty else price
+        vwap_score = max(0.0, 1.0 - abs(price - vwap) / max(price, 1e-9)) * 100.0
+
+        # Relative volume: current volume relative to the average volume
+        current_vol = df["volume"].iloc[-1]
+        avg_vol = df["volume"].rolling(window=min(len(df), 20)).mean().iloc[-1]
+        if avg_vol and avg_vol > 0:
+            rel_vol_ratio = current_vol / avg_vol
+        else:
+            rel_vol_ratio = 1.0
+        # Cap the ratio to avoid extreme values and scale to 0-100
+        rel_vol_score = min(rel_vol_ratio, 2.0) / 2.0 * 100.0
+
+        # Trend strength: use ADX indicator if available; scale to 0-100
+        adx_series = indicators.adx(df)
+        adx_value = adx_series.iloc[-1] if not adx_series.empty else 0.0
+        trend_score = min(max(adx_value * 2.0, 0.0), 100.0)
+
+        # RSI extension: penalize overbought/oversold extremes
+        rsi_series = indicators.rsi(df)
+        rsi_value = rsi_series.iloc[-1] if not rsi_series.empty else 50.0
+        # Ideal RSI around 50; deviation reduces score
+        rsi_penalty = max(abs(rsi_value - 50.0) - 10.0, 0.0) * 1.5
+        rsi_score = max(0.0, 100.0 - rsi_penalty)
+
+        # Gap extension penalty: large gap between first and last close
+        first_close = df["close"].iloc[0]
+        gap_ratio = abs(price - first_close) / max(first_close, 1e-9)
+        gap_penalty = min(gap_ratio * 100.0, 100.0)
+
+        # Placeholder for catalyst and market regime adjustments
+        catalyst_bonus = 0.0
+        market_bonus = 0.0
+        cfg = getattr(self, "cfg", None) or {}
+        # If config provides catalyst bonuses per symbol, apply them
+        if isinstance(cfg, dict):
+            symbol_cfg = cfg.get("catalysts", {}).get(symbol)
+            if symbol_cfg:
+                catalyst_bonus += symbol_cfg
+            market_bonus += cfg.get("market_regime_bonus", 0.0)
+
+        # Combine factors into a final score with weights
+        final = (
+            0.25 * vwap_score +
+            0.2 * rel_vol_score +
+            0.25 * trend_score +
+            0.15 * rsi_score +
+            0.15 * base_score +
+            catalyst_bonus +
+            market_bonus -
+            gap_penalty
+        )
+        # Normalize to 0-100
+        final_score = max(0.0, min(final, 100.0))
+        return final_score
+}
