@@ -2,23 +2,21 @@
 Configuration defaults for the Alpaca Rule Engine.
 
 This module contains a single dictionary, DEFAULT_CONFIG, which
-specifies the engine's default behaviour.  Tickers, indicator
-weights, score thresholds and risk constraints can all be tuned via
-this configuration.  The structure is intentionally simple so that it
-can be loaded from a JSON file or overridden with environment
-variables at runtime.
+specifies the engine's default behaviour. Tickers, indicator weights,
+score thresholds and risk constraints can all be tuned via this
+configuration. The structure is intentionally simple so that it can be
+loaded from JSON or overridden with environment variables at runtime.
 """
 
-DEFAULT_CONFIG = {
-    # List of tickers to monitor.  Up to 100 tickers are supported
-    # without modification to the engine.  Each symbol will be
-    # processed independently at the configured interval.
-    "tickers": ["TSLA", "AAPL", "NVDA"],
+from __future__ import annotations
 
-    # Scoring weights for the supported indicators.  All values
-    # contribute to a final score on a 0–100 scale.  Increasing a
-    # weight raises the influence of the corresponding indicator on
-    # trading decisions.  Removing an entry disables the indicator.
+import copy
+import os
+from typing import Any, Dict
+
+
+DEFAULT_CONFIG = {
+    "tickers": [],
     "weights": {
         "sma": 5,
         "ema": 5,
@@ -33,45 +31,97 @@ DEFAULT_CONFIG = {
         "roc": 5,
         "cci": 5,
     },
-
-    # Thresholds for turning a score into an action.  If the score is
-    # greater than or equal to the buy threshold a long entry will be
-    # attempted.  If the score is less than or equal to the sell
-    # threshold a short entry (or exit from a long) will be
-    # attempted.  Otherwise the engine will hold.
     "thresholds": {
         "buy": 75,
         "sell": 35,
     },
-
-    # Risk management parameters.  These settings enforce prudent
-    # position sizing and stop‐loss / take profit exits.  They are
-    # specified as fractions or absolute dollar values.  Symbol‐
-    # specific overrides can be added in the `overrides` section.
     "risk": {
-        "max_position_pct": 0.05,       # 5 % of account equity per trade
-        "max_notional_trade": 1000.0,   # USD maximum per trade
-        "max_open_positions": 10,       # limit simultaneous positions
-        "max_daily_loss_pct": 0.02,     # 2 % daily drawdown kill switch
-        "stop_loss_pct": 0.03,          # default stop loss 3 %
-        "take_profit_pct": 0.06,        # default take profit 6 %
-        "overrides": {
-            "TSLA": {
-                "stop_loss_pct": 0.035,
-                "take_profit_pct": 0.07,
-                "max_notional_trade": 500.0,
-            }
-        },
+        "max_position_pct": 0.05,
+        "max_notional_trade": 1000.0,
+        "max_open_positions": 10,
+        "max_daily_loss_pct": 0.02,
+        "stop_loss_pct": 0.03,
+        "take_profit_pct": 0.06,
+        "overrides": {},
     },
-
-    # Interval in seconds between recalculations.  A value of 60
-    # seconds means the engine will evaluate market data and trading
-    # rules once per minute for each ticker.
     "interval_seconds": 60,
-
-    # Dry run mode.  When true the engine will simulate order
-    # placement without actually sending orders to Alpaca.  Set this
-    # flag to False only after you have thoroughly tested your
-    # configuration.
     "dry_run": True,
 }
+
+
+def _parse_percent(value: str) -> float:
+    parsed = float(value)
+    return parsed / 100.0 if parsed > 1 else parsed
+
+
+def load_config_from_env() -> Dict[str, Any]:
+    config = copy.deepcopy(DEFAULT_CONFIG)
+
+    symbols = os.getenv("WATCHLIST_SYMBOLS") or os.getenv("TRADE_SYMBOLS")
+    if symbols:
+        config["tickers"] = [symbol.strip().upper() for symbol in symbols.split(",") if symbol.strip()]
+
+    buy_threshold = os.getenv("BUY_SCORE_THRESHOLD")
+    if buy_threshold:
+        try:
+            config["thresholds"]["buy"] = float(buy_threshold)
+        except ValueError:
+            pass
+
+    sell_threshold = os.getenv("SELL_SCORE_THRESHOLD")
+    if sell_threshold:
+        try:
+            config["thresholds"]["sell"] = float(sell_threshold)
+        except ValueError:
+            pass
+
+    max_positions = os.getenv("MAX_OPEN_POSITIONS")
+    if max_positions:
+        try:
+            config["risk"]["max_open_positions"] = int(max_positions)
+        except ValueError:
+            pass
+
+    max_size = os.getenv("MAX_POSITION_SIZE")
+    if max_size:
+        try:
+            config["risk"]["max_notional_trade"] = float(max_size)
+        except ValueError:
+            pass
+
+    stop_loss = os.getenv("STOP_LOSS_PCT")
+    if stop_loss:
+        try:
+            config["risk"]["stop_loss_pct"] = _parse_percent(stop_loss)
+        except ValueError:
+            pass
+
+    take_profit = os.getenv("TAKE_PROFIT_PCT")
+    if take_profit:
+        try:
+            config["risk"]["take_profit_pct"] = _parse_percent(take_profit)
+        except ValueError:
+            pass
+
+    daily_loss = os.getenv("MAX_DAILY_LOSS_PCT") or os.getenv("MAX_DAILY_LOSS")
+    if daily_loss:
+        try:
+            config["risk"]["max_daily_loss_pct"] = _parse_percent(daily_loss)
+        except ValueError:
+            pass
+
+    interval_minutes = os.getenv("ENGINE_INTERVAL_MINUTES")
+    if interval_minutes:
+        try:
+            config["interval_seconds"] = int(float(interval_minutes) * 60)
+        except ValueError:
+            pass
+
+    interval_seconds = os.getenv("ENGINE_INTERVAL_SECONDS")
+    if interval_seconds:
+        try:
+            config["interval_seconds"] = int(float(interval_seconds))
+        except ValueError:
+            pass
+
+    return config
