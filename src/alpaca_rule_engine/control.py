@@ -20,17 +20,23 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from .engine import RuleEngine
-from .config import DEFAULT_CONFIG
+from .config import load_config_from_env
 from .signal_diagnostics import latest_indicator_snapshot, setup_quality, weighted_score
 
 
 app = FastAPI(title="Alpaca Rule Engine Control")
 
-engine: RuleEngine = RuleEngine(config=DEFAULT_CONFIG)
+engine: RuleEngine = RuleEngine(config=load_config_from_env())
 
 
 class TickerUpdate(BaseModel):
     tickers: List[str]
+
+
+@app.get("/health")
+def health() -> dict:
+    """Railway health-check endpoint."""
+    return {"status": "ok", "service": "alpaca-rule-engine"}
 
 
 @app.post("/start")
@@ -61,11 +67,30 @@ def get_tickers() -> dict:
 
 @app.post("/tickers")
 def set_tickers(update: TickerUpdate) -> dict:
-    """Replace the tickers the engine monitors."""
-    if not update.tickers or len(update.tickers) > 100:
-        raise HTTPException(status_code=400, detail="Tickers list must contain between 1 and 100 symbols.")
-    engine.tickers = update.tickers
-    return {"tickers": list(engine.tickers)}
+    """Replace the tickers the engine monitors.
+
+    Tickers are normalized to uppercase and deduplicated while preserving
+    order. There is no hard-coded upper limit here; infrastructure capacity
+    should govern practical universe size.
+    """
+    if not update.tickers:
+        raise HTTPException(status_code=400, detail="At least one ticker must be provided.")
+
+    normalized = []
+    seen = set()
+    for raw_symbol in update.tickers:
+        symbol = raw_symbol.strip().upper()
+        if not symbol or symbol in seen:
+            continue
+        seen.add(symbol)
+        normalized.append(symbol)
+
+    if not normalized:
+        raise HTTPException(status_code=400, detail="At least one valid ticker must be provided.")
+
+    engine.tickers = normalized
+    engine.config["tickers"] = normalized
+    return {"tickers": list(engine.tickers), "count": len(engine.tickers)}
 
 
 @app.post("/run-once")
