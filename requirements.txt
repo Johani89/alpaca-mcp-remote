@@ -1,5 +1,5 @@
 alpaca-py
-mcp
+mcp==1.21.0
 python-dotenv
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
