@@ -61,12 +61,9 @@ async def manifest_alias(_: Request) -> Response:
     return JSONResponse(_load_manifest())
 
 
-# Build the official FastMCP Streamable HTTP ASGI app. The SDK exposes /mcp
-# through streamable_http_app(), so Railway receives health/discovery endpoints
-# and ChatGPT receives the real MCP transport from the same process.
-app = AuthHeaderMiddleware(
-    mcp.streamable_http_app(
-        streamable_http_path=MCP_PATH,
-        host="0.0.0.0",
-    )
-)
+# FastMCP 1.21 configures the transport path through settings.
+# Network binding is owned by Uvicorn, not streamable_http_app().
+mcp.settings.streamable_http_path = MCP_PATH
+
+# custom_route endpoints and /mcp are included in this Starlette application.
+app = AuthHeaderMiddleware(mcp.streamable_http_app())
