@@ -1,23 +1,16 @@
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8080
+
 WORKDIR /app
-
-# Copy project metadata
 COPY pyproject.toml README.md ./
-COPY requirements.txt ./requirements.txt
+COPY src ./src
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir .
 
-# Copy source code
-COPY src/ ./src/
+USER 65532:65532
+EXPOSE 8080
 
-# Copy MCP manifest (THIS IS WHAT WAS MISSING)
-COPY .well-known ./.well-known
-
-# Install package & dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir .
-
-ENV PORT=8000
-
-# Start the MCP server
-CMD ["alpaca-mcp-server", "serve", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "alpaca_connector.app:app", "--host", "0.0.0.0", "--port", "8080", "--no-access-log"]
