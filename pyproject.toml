@@ -46,7 +46,8 @@ dependencies = [
     "mcp==1.21.0",                  # Keep ASGI API deterministic
     "alpaca-py>=0.29.0",           # Alpaca Trading API client
     "python-dotenv>=1.0.0",        # Environment variable management
-    "click>=8.1.0"                 # CLI framework for commands
+    "click>=8.1.0",                # CLI framework for commands
+    "playwright>=1.49.0"           # Browser automation tools
 ]
 
 # Optional development dependencies

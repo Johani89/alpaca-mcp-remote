@@ -7,3 +7,4 @@ pandas
 numpy
 ta
 pydantic
+playwright>=1.49.0

@@ -15,7 +15,8 @@ COPY .well-known ./.well-known
 # Install package & dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir .
+    pip install --no-cache-dir . && \
+    python -m playwright install --with-deps chromium
 
 ENV PORT=8000
 

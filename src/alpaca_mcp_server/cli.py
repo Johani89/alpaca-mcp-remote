@@ -12,6 +12,7 @@ import click
 
 # Import our server and configuration classes
 from .server import AlpacaMCPServer
+from . import browser_tools  # noqa: F401 - registers Playwright MCP tools
 from .config import ConfigManager
 from . import __version__
 
@@ -75,7 +76,7 @@ def init(api_key: Optional[str], secret_key: Optional[str],
         alpaca-mcp init                     # Interactive configuration
         alpaca-mcp init --paper             # Force paper trading mode
         alpaca-mcp init --live              # Enable live trading mode
-        alpaca-mcp init --config-file ~/my.env  # Use custom config file
+        alpaca-mcp init --config-file ~/my.env  # Use custom config
     """
     try:
         # Initialize configuration manager
