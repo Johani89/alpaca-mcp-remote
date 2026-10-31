@@ -1,2 +1,5 @@
 .env
 .gitignore
+
+# GitHub-only showcase files: exclude from Railway/Docker build context
+showcase/
