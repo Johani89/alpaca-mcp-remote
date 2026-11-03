@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir . && \
     python -m playwright install --with-deps chromium
 
-ENV PORT=8000
+EXPOSE 8000
 
 # Start the MCP server
-CMD ["alpaca-mcp-server", "serve", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000"]
+CMD exec alpaca-mcp-server serve --transport streamable-http --host 0.0.0.0 --port "${PORT:-8000}"
